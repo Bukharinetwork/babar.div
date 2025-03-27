@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MikroTik User Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #1abc9c;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            height: 100vh;
+            position: fixed;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .stat-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card i {
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+        .table-responsive {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                height: auto;
+                position: relative;
+                width: 100%;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4>MikroTik Manager</h4>
+                        <hr>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#users" data-bs-toggle="tab">
+                                <i class="fas fa-users"></i> User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-user" data-bs-toggle="tab">
+                                <i class="fas fa-user-plus"></i> Add New User
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#recharge" data-bs-toggle="tab">
+                                <i class="fas fa-credit-card"></i> Recharge User
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#settings" data-bs-toggle="tab">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#graphs" data-bs-toggle="tab">
+                                <i class="fas fa-chart-line"></i> Bandwidth Graphs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="tab-content">
+                    <!-- Dashboard Tab -->
+                    <div class="tab-pane fade show active" id="dashboard">
+                        <h2 class="mb-4">Dashboard Overview</h2>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-card p-3 bg-primary text-white">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5>Total Users</h5>
+                                            <h2 id="total-users">0</h2>
+                                        </div>
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card p-3 bg-success text-white">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5>Active Users</h5>
+                                            <h2 id="active-users">0</h2>
+                                        </div>
+                                        <i class="fas fa-user-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card p-3 bg-warning text-white">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5>Expiring Soon</h5>
+                                            <h2 id="expiring-users">0</h2>
+                                        </div>
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card p-3 bg-danger text-white">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5>Expired Users</h5>
+                                            <h2 id="expired-users">0</h2>
+                                        </div>
+                                        <i class="fas fa-user-times"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="chart-container">
+                                    <h5>User Status Distribution</h5>
+                                    <canvas id="user-status-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-container">
+                                    <h5>Bandwidth Usage</h5>
+                                    <canvas id="bandwidth-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <h5 class="p-3">Recent Activity</h5>
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>IP Address</th>
+                                                <th>MAC Address</th>
+                                                <th>Status</th>
+                                                <th>Uptime</th>
+                                                <th>Download/Upload</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-activity">
+                                            <!-- Will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Management Tab -->
+                    <div class="tab-pane fade" id="users">
+                        <h2 class="mb-4">User Management</h2>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search users..." id="user-search">
+                                    <button class="btn btn-primary" type="button" id="search-btn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-secondary" id="filter-active">Active</button>
+                                    <button class="btn btn-outline-secondary" id="filter-expired">Expired</button>
+                                    <button class="btn btn-outline-secondary" id="filter-all">All</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Password</th>
+                                        <th>Profile</th>
+                                        <th>Status</th>
+                                        <th>Expiry Date</th>
+                                        <th>MAC Address</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-table-body">
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-center" id="pagination">
+                                        <!-- Pagination will be added by JavaScript -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add New User Tab -->
+                    <div class="tab-pane fade" id="add-user">
+                        <h2 class="mb-4">Add New User</h2>
+                        
+                        <div class="form-container">
+                            <form id="add-user-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="new-username" class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="new-username" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="new-password" class="form-label">Password</label>
+                                            <input type="text" class="form-control" id="new-password" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-profile" class="form-label">Profile</label>
+                                            <select class="form-select" id="user-profile" required>
+                                                <option value="">Select Profile</option>
+                                                <option value="1Mbps">1Mbps</option>
+                                                <option value="2Mbps">2Mbps</option>
+                                                <option value="5Mbps">5Mbps</option>
+                                                <option value="10Mbps">10Mbps</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-validity" class="form-label">Validity (Days)</label>
+                                            <input type="number" class="form-control" id="user-validity" min="1" value="30" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-mac" class="form-label">MAC Address (Optional)</label>
+                                            <input type="text" class="form-control" id="user-mac" placeholder="00:11:22:33:44:55">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-comment" class="form-label">Comment (Optional)</label>
+                                            <input type="text" class="form-control" id="user-comment">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-user-plus"></i> Add User
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Recharge User Tab -->
+                    <div class="tab-pane fade" id="recharge">
+                        <h2 class="mb-4">Recharge User</h2>
+                        
+                        <div class="form-container">
+                            <form id="recharge-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="recharge-username" class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="recharge-username" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="recharge-profile" class="form-label">New Profile (Optional)</label>
+                                            <select class="form-select" id="recharge-profile">
+                                                <option value="">Keep Current</option>
+                                                <option value="1Mbps">1Mbps</option>
+                                                <option value="2Mbps">2Mbps</option>
+                                                <option value="5Mbps">5Mbps</option>
+                                                <option value="10Mbps">10Mbps</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="recharge-days" class="form-label">Add Days</label>
+                                            <input type="number" class="form-control" id="recharge-days" min="1" value="30" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="recharge-amount" class="form-label">Amount</label>
+                                            <input type="number" class="form-control" id="recharge-amount" min="0" step="0.01">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="recharge-comment" class="form-label">Comment (Optional)</label>
+                                    <input type="text" class="form-control" id="recharge-comment">
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-credit-card"></i> Recharge User
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Settings Tab -->
+                    <div class="tab-pane fade" id="settings">
+                        <h2 class="mb-4">Settings</h2>
+                        
+                        <div class="form-container">
+                            <form id="settings-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="router-ip" class="form-label">Router IP Address</label>
+                                            <input type="text" class="form-control" id="router-ip" value="192.168.88.1" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="api-port" class="form-label">API Port</label>
+                                            <input type="number" class="form-control" id="api-port" value="8728" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="admin-username" class="form-label">Admin Username</label>
+                                            <input type="text" class="form-control" id="admin-username" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="admin-password" class="form-label">Admin Password</label>
+                                            <input type="password" class="form-control" id="admin-password" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enable-https">
+                                        <label class="form-check-label" for="enable-https">Enable HTTPS (Requires SSL Certificate)</label>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save"></i> Save Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Graphs Tab -->
+                    <div class="tab-pane fade" id="graphs">
+                        <h2 class="mb-4">Bandwidth Monitoring</h2>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container">
+                                    <h5>Daily Bandwidth Usage</h5>
+                                    <canvas id="daily-bandwidth-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-container">
+                                    <h5>Monthly Bandwidth Usage</h5>
+                                    <canvas id="monthly-bandwidth-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="chart-container">
+                                    <h5>User Bandwidth Distribution</h5>
+                                    <canvas id="user-bandwidth-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Action Modal -->
+    <div class="modal fade" id="userActionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">User Actions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="confirmAction">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Database simulation using localStorage
+        const DB_NAME = 'mikrotik_users';
+        const SETTINGS_KEY = 'mikrotik_settings';
+        
+        // Initialize database if not exists
+        function initDatabase() {
+            if (!localStorage.getItem(DB_NAME)) {
+                const defaultUsers = [
+                    { 
+                        username: 'admin', 
+                        password: 'admin123', 
+                        profile: '10Mbps', 
+                        status: 'active', 
+                        expiry: '2030-12-31', 
+                        mac: '00:1A:2B:3C:4D:5E',
+                        created: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    },
+                    { 
+                        username: 'user1', 
+                        password: 'pass1', 
+                        profile: '2Mbps', 
+                        status: 'active', 
+                        expiry: '2023-12-31', 
+                        mac: '00:11:22:33:44:55',
+                        created: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    },
+                    { 
+                        username: 'user2', 
+                        password: 'pass2', 
+                        profile: '5Mbps', 
+                        status: 'active', 
+                        expiry: '2023-11-30', 
+                        mac: '00:11:22:33:44:56',
+                        created: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem(DB_NAME, JSON.stringify(defaultUsers));
+            }
+            
+            if (!localStorage.getItem(SETTINGS_KEY)) {
+                const defaultSettings = {
+                    routerIP: '192.168.88.1',
+                    apiPort: '8728',
+                    adminUsername: 'admin',
+                    adminPassword: 'admin',
+                    enableHTTPS: false
+                };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(defaultSettings));
+            }
+        }
+        
+        // Get all users
+        function getUsers() {
+            return JSON.parse(localStorage.getItem(DB_NAME)) || [];
+        }
+        
+        // Save users
+        function saveUsers(users) {
+            localStorage.setItem(DB_NAME, JSON.stringify(users));
+        }
+        
+        // Get settings
+        function getSettings() {
+            return JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        }
+        
+        // Save settings
+        function saveSettings(settings) {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+        
+        // Add a new user
+        function addUser(user) {
+            const users = getUsers();
+            users.push(user);
+            saveUsers(users);
+        }
+        
+        // Update user
+        function updateUser(username, updates) {
+            const users = getUsers();
+            const userIndex = users.findIndex(u => u.username === username);
+            if (userIndex !== -1) {
+                users[userIndex] = {...users[userIndex], ...updates, lastUpdated: new Date().toISOString()};
+                saveUsers(users);
+                return true;
+            }
+            return false;
+        }
+        
+        // Delete user
+        function deleteUser(username) {
+            const users = getUsers();
+            const filteredUsers = users.filter(u => u.username !== username);
+            saveUsers(filteredUsers);
+        }
+        
+        // Get user status
+        function getUserStatus(expiryDate) {
+            const today = new Date();
+            const expiry = new Date(expiryDate);
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 0) return 'expired';
+            if (diffDays <= 7) return 'expiring';
+            return 'active';
+        }
+        
+        // Update all user statuses
+        function updateUserStatuses() {
+            const users = getUsers();
+            const updatedUsers = users.map(user => {
+                const status = getUserStatus(user.expiry);
+                return {...user, status};
+            });
+            saveUsers(updatedUsers);
+        }
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize database
+            initDatabase();
+            updateUserStatuses();
+            
+            // Load settings
+            const settings = getSettings();
+            if (settings) {
+                document.getElementById('router-ip').value = settings.routerIP;
+                document.getElementById('api-port').value = settings.apiPort;
+                document.getElementById('admin-username').value = settings.adminUsername;
+                document.getElementById('admin-password').value = settings.adminPassword;
+                document.getElementById('enable-https').checked = settings.enableHTTPS;
+            }
+            
+            // Update stats
+            updateStats();
+            
+            // Populate user table
+            populateUserTable();
+            
+            // Initialize charts
+            initCharts();
+            
+            // Setup form submissions
+            setupForms();
+            
+            // Setup search and filters
+            document.getElementById('search-btn').addEventListener('click', function() {
+                const searchTerm = document.getElementById('user-search').value.toLowerCase();
+                populateUserTable('all', searchTerm);
+            });
+            
+            document.getElementById('user-search').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const searchTerm = document.getElementById('user-search').value.toLowerCase();
+                    populateUserTable('all', searchTerm);
+                }
+            });
+        });
+        
+        function updateStats() {
+            const users = getUsers();
+            document.getElementById('total-users').textContent = users.length;
+            document.getElementById('active-users').textContent = users.filter(u => u.status === 'active').length;
+            document.getElementById('expiring-users').textContent = users.filter(u => u.status === 'expiring').length;
+            document.getElementById('expired-users').textContent = users.filter(u => u.status === 'expired').length;
+            
+            // Update recent activity
+            updateRecentActivity();
+        }
+        
+        function updateRecentActivity() {
+            const tbody = document.getElementById('recent-activity');
+            tbody.innerHTML = '';
+            
+            const users = getUsers().slice(0, 5); // Get first 5 users for demo
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}</td>
+                    <td>${user.mac}</td>
+                    <td><span class="badge bg-${getStatusColor(user.status)}">${user.status}</span></td>
+                    <td>${Math.floor(Math.random() * 24)}h ${Math.floor(Math.random() * 60)}m</td>
+                    <td>${(Math.random() * 10).toFixed(2)}GB / ${(Math.random() * 2).toFixed(2)}GB</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function populateUserTable(filter = 'all', searchTerm = '') {
+            const tbody = document.getElementById('user-table-body');
+            tbody.innerHTML = '';
+            
+            let users = getUsers();
+            
+            // Apply filter
+            if (filter === 'active') {
+                users = users.filter(u => u.status === 'active');
+            } else if (filter === 'expired') {
+                users = users.filter(u => u.status === 'expired');
+            }
+            
+            // Apply search
+            if (searchTerm) {
+                users = users.filter(u => 
+                    u.username.toLowerCase().includes(searchTerm) ||
+                    u.mac.toLowerCase().includes(searchTerm) ||
+                    u.profile.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>${user.password}</td>
+                    <td>${user.profile}</td>
+                    <td><span class="badge bg-${getStatusColor(user.status)}">${user.status}</span></td>
+                    <td>${user.expiry}</td>
+                    <td>${user.mac}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showUserActions('${user.username}')">
+                            <i class="fas fa-cog"></i> Actions
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function getStatusColor(status) {
+            switch(status) {
+                case 'active': return 'success';
+                case 'expiring': return 'warning';
+                case 'expired': return 'danger';
+                default: return 'secondary';
+            }
+        }
+        
+        function initCharts() {
+            const users = getUsers();
+            const activeCount = users.filter(u => u.status === 'active').length;
+            const expiringCount = users.filter(u => u.status === 'expiring').length;
+            const expiredCount = users.filter(u => u.status === 'expired').length;
+            
+            // User Status Chart
+            const statusCtx = document.getElementById('user-status-chart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'Expiring', 'Expired'],
+                    datasets: [{
+                        data: [activeCount, expiringCount, expiredCount],
+                        backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
+                    }]
+                }
+            });
+            
+            // Bandwidth Chart
+            const bwCtx = document.getElementById('bandwidth-chart').getContext('2d');
+            new Chart(bwCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Download (GB)',
+                        data: [120, 190, 170, 200, 220, 250],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true
+                    }, {
+                        label: 'Upload (GB)',
+                        data: [50, 70, 60, 80, 90, 100],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        fill: true
+                    }]
+                }
+            });
+            
+            // Daily Bandwidth Chart
+            const dailyBwCtx = document.getElementById('daily-bandwidth-chart').getContext('2d');
+            new Chart(dailyBwCtx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [{
+                        label: 'Usage (MB)',
+                        data: Array.from({length: 24}, () => Math.floor(Math.random() * 1000)),
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)'
+                    }]
+                }
+            });
+            
+            // Monthly Bandwidth Chart
+            const monthlyBwCtx = document.getElementById('monthly-bandwidth-chart').getContext('2d');
+            new Chart(monthlyBwCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Usage (GB)',
+                        data: Array.from({length: 12}, () => Math.floor(Math.random() * 100)),
+                        backgroundColor: 'rgba(46, 204, 113, 0.7)'
+                    }]
+                }
+            });
+            
+            // User Bandwidth Chart
+            const userBwCtx = document.getElementById('user-bandwidth-chart').getContext('2d');
+            new Chart(userBwCtx, {
+                type: 'bar',
+                data: {
+                    labels: users.slice(0, 5).map(u => u.username), // Show first 5 users
+                    datasets: [{
+                        label: 'Download (GB)',
+                        data: users.slice(0, 5).map(() => Math.floor(Math.random() * 100)),
+                        backgroundColor: '#3498db'
+                    }, {
+                        label: 'Upload (GB)',
+                        data: users.slice(0, 5).map(() => Math.floor(Math.random() * 30)),
+                        backgroundColor: '#e74c3c'
+                    }]
+                }
+            });
+        }
+        
+        function setupForms() {
+            // Add User Form
+            document.getElementById('add-user-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('new-username').value;
+                const password = document.getElementById('new-password').value;
+                const profile = document.getElementById('user-profile').value;
+                const validity = document.getElementById('user-validity').value;
+                const mac = document.getElementById('user-mac').value;
+                const comment = document.getElementById('user-comment').value;
+                
+                // Check if username already exists
+                const users = getUsers();
+                if (users.some(u => u.username === username)) {
+                    alert('Username already exists!');
+                    return;
+                }
+                
+                // Calculate expiry date
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + parseInt(validity));
+                const formattedDate = expiryDate.toISOString().split('T')[0];
+                
+                // Add new user
+                addUser({
+                    username,
+                    password,
+                    profile,
+                    status: 'active',
+                    expiry: formattedDate,
+                    mac: mac || 'Not bound',
+                    comment: comment || '',
+                    created: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                });
+                
+                // Update UI
+                updateStats();
+                populateUserTable();
+                
+                // Reset form
+                this.reset();
+                document.getElementById('user-validity').value = 30;
+                
+                // Show success message
+                alert('User added successfully!');
+                
+                // Switch to users tab
+                const tab = new bootstrap.Tab(document.querySelector('#users-tab'));
+                tab.show();
+            });
+            
+            // Recharge Form
+            document.getElementById('recharge-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('recharge-username').value;
+                const profile = document.getElementById('recharge-profile').value;
+                const days = document.getElementById('recharge-days').value;
+                const amount = document.getElementById('recharge-amount').value;
+                const comment = document.getElementById('recharge-comment').value;
+                
+                // Find user and update
+                const users = getUsers();
+                const userIndex = users.findIndex(u => u.username === username);
+                
+                if (userIndex !== -1) {
+                    const user = users[userIndex];
+                    const updates = {};
+                    
+                    if (profile) updates.profile = profile;
+                    
+                    // Calculate new expiry date
+                    let expiryDate = new Date(user.expiry);
+                    if (expiryDate < new Date()) expiryDate = new Date(); // If expired, start from today
+                    expiryDate.setDate(expiryDate.getDate() + parseInt(days));
+                    updates.expiry = expiryDate.toISOString().split('T')[0];
+                    updates.status = 'active';
+                    
+                    if (comment) updates.comment = comment;
+                    
+                    // Update user
+                    updateUser(username, updates);
+                    
+                    // Update UI
+                    populateUserTable();
+                    
+                    // Show success message
+                    alert(`User ${username} recharged successfully for ${days} days!`);
+                    this.reset();
+                } else {
+                    alert('User not found!');
+                }
+            });
+            
+            // Settings Form
+            document.getElementById('settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const routerIP = document.getElementById('router-ip').value;
+                const apiPort = document.getElementById('api-port').value;
+                const adminUser = document.getElementById('admin-username').value;
+                const adminPass = document.getElementById('admin-password').value;
+                const enableHTTPS = document.getElementById('enable-https').checked;
+                
+                // Save settings
+                saveSettings({
+                    routerIP,
+                    apiPort,
+                    adminUsername: adminUser,
+                    adminPassword: adminPass,
+                    enableHTTPS
+                });
+                
+                alert('Settings saved successfully!');
+            });
+            
+            // Filter buttons
+            document.getElementById('filter-active').addEventListener('click', () => populateUserTable('active'));
+            document.getElementById('filter-expired').addEventListener('click', () => populateUserTable('expired'));
+            document.getElementById('filter-all').addEventListener('click', () => populateUserTable('all'));
+        }
+        
+        function showUserActions(username) {
+            const users = getUsers();
+            const user = users.find(u => u.username === username);
+            if (!user) return;
+            
+            const modal = new bootstrap.Modal(document.getElementById('userActionModal'));
+            document.getElementById('modalTitle').textContent = `Actions for ${username}`;
+            
+            // Create action buttons
+            const actionsHTML = `
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="prepareAction('reset-pwd','${username}')">
+                        <i class="fas fa-key"></i> Reset Password
+                    </button>
+                    <button class="btn btn-outline-success" onclick="prepareAction('recharge','${username}')">
+                        <i class="fas fa-credit-card"></i> Recharge Account
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="prepareAction('clear-mac','${username}')">
+                        <i class="fas fa-ethernet"></i> Clear MAC Binding
+                    </button>
+                    <button class="btn btn-outline-info" onclick="prepareAction('change-profile','${username}')">
+                        <i class="fas fa-sliders-h"></i> Change Profile
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="prepareAction('delete','${username}')">
+                        <i class="fas fa-trash-alt"></i> Delete User
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>User Details:</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item">Username: ${user.username}</li>
+                        <li class="list-group-item">Profile: ${user.profile}</li>
+                        <li class="list-group-item">Status: <span class="badge bg-${getStatusColor(user.status)}">${user.status}</span></li>
+                        <li class="list-group-item">Expiry: ${user.expiry}</li>
+                        <li class="list-group-item">MAC: ${user.mac}</li>
+                        ${user.comment ? `<li class="list-group-item">Comment: ${user.comment}</li>` : ''}
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = actionsHTML;
+            modal.show();
+        }
+        
+        function prepareAction(action, username) {
+            const users = getUsers();
+            const user = users.find(u => u.username === username);
+            if (!user) return;
+            
+            let actionHTML = '';
+            let actionText = '';
+            
+            switch(action) {
+                case 'reset-pwd':
+                    actionText = 'Reset Password';
+                    actionHTML = `
+                        <div class="mb-3">
+                            <label for="new-password" class="form-label">New Password</label>
+                            <input type="text" class="form-control" id="new-password" value="${user.password}">
+                        </div>
+                    `;
+                    break;
+                    
+                case 'recharge':
+                    actionText = 'Recharge Account';
+                    actionHTML = `
+                        <div class="mb-3">
+                            <label for="recharge-days" class="form-label">Add Days</label>
+                            <input type="number" class="form-control" id="recharge-days" value="30" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="recharge-profile" class="form-label">New Profile (Optional)</label>
+                            <select class="form-select" id="recharge-profile">
+                                <option value="">Keep Current (${user.profile})</option>
+                                <option value="1Mbps">1Mbps</option>
+                                <option value="2Mbps">2Mbps</option>
+                                <option value="5Mbps">5Mbps</option>
+                                <option value="10Mbps">10Mbps</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recharge-comment" class="form-label">Comment (Optional)</label>
+                            <input type="text" class="form-control" id="recharge-comment" value="${user.comment || ''}">
+                        </div>
+                    `;
+                    break;
+                    
+                case 'clear-mac':
+                    actionText = 'Clear MAC Binding';
+                    actionHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> This will remove the MAC address binding for ${username}.
+                            The user will be able to connect from any device.
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirm-clear-mac">
+                            <label class="form-check-label" for="confirm-clear-mac">I understand this action</label>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'change-profile':
+                    actionText = 'Change Profile';
+                    actionHTML = `
+                        <div class="mb-3">
+                            <label for="new-profile" class="form-label">Select New Profile</label>
+                            <select class="form-select" id="new-profile">
+                                <option value="1Mbps" ${user.profile === '1Mbps' ? 'selected' : ''}>1Mbps</option>
+                                <option value="2Mbps" ${user.profile === '2Mbps' ? 'selected' : ''}>2Mbps</option>
+                                <option value="5Mbps" ${user.profile === '5Mbps' ? 'selected' : ''}>5Mbps</option>
+                                <option value="10Mbps" ${user.profile === '10Mbps' ? 'selected' : ''}>10Mbps</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'delete':
+                    actionText = 'Delete User';
+                    actionHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> This will permanently delete ${username} from the system.
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirm-delete">
+                            <label class="form-check-label" for="confirm-delete">I confirm I want to delete this user</label>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            document.getElementById('modalTitle').textContent = actionText;
+            document.getElementById('modalBody').innerHTML = actionHTML;
+            
+            // Set up confirm button
+            const confirmBtn = document.getElementById('confirmAction');
+            confirmBtn.onclick = function() {
+                performAction(action, username);
+            };
+            confirmBtn.className = `btn btn-${action === 'delete' ? 'danger' : 'primary'}`;
+            confirmBtn.innerHTML = `<i class="fas fa-check"></i> ${actionText}`;
+        }
+        
+        function performAction(action, username) {
+            switch(action) {
+                case 'reset-pwd':
+                    const newPassword = document.getElementById('new-password').value;
+                    updateUser(username, { password: newPassword });
+                    alert(`Password for ${username} has been updated!`);
+                    break;
+                    
+                case 'recharge':
+                    const daysToAdd = parseInt(document.getElementById('recharge-days').value);
+                    const newProfile = document.getElementById('recharge-profile').value;
+                    const comment = document.getElementById('recharge-comment').value;
+                    
+                    const updates = {};
+                    if (newProfile) updates.profile = newProfile;
+                    
+                    // Calculate new expiry date
+                    const users = getUsers();
+                    const user = users.find(u => u.username === username);
+                    let expiryDate = new Date(user.expiry);
+                    if (expiryDate < new Date()) expiryDate = new Date(); // If expired, start from today
+                    expiryDate.setDate(expiryDate.getDate() + daysToAdd);
+                    updates.expiry = expiryDate.toISOString().split('T')[0];
+                    updates.status = 'active';
+                    
+                    if (comment) updates.comment = comment;
+                    
+                    updateUser(username, updates);
+                    alert(`${username} has been recharged for ${daysToAdd} days!`);
+                    break;
+                    
+                case 'clear-mac':
+                    if (!document.getElementById('confirm-clear-mac').checked) {
+                        alert('Please confirm the action!');
+                        return;
+                    }
+                    updateUser(username, { mac: 'Not bound' });
+                    alert(`MAC binding for ${username} has been cleared!`);
+                    break;
+                    
+                case 'change-profile':
+                    const profile = document.getElementById('new-profile').value;
+                    updateUser(username, { profile });
+                    alert(`Profile for ${username} has been changed to ${profile}!`);
+                    break;
+                    
+                case 'delete':
+                    if (!document.getElementById('confirm-delete').checked) {
+                        alert('Please confirm the action!');
+                        return;
+                    }
+                    deleteUser(username);
+                    alert(`${username} has been deleted!`);
+                    break;
+            }
+            
+            // Update UI
+            updateStats();
+            populateUserTable();
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('userActionModal')).hide();
+        }
+    </script>
+</body>
+</html>
